@@ -36,20 +36,10 @@ void client_disconnect(struct client *client) {
 		if (client)
 			free(client);
 		
-		/*for (client_entry = TAILQ_FIRST(&clients); 
-			client_entry != NULL; 
-			client_entry = tmp_entry) {
-			tmp_entry = TAILQ_NEXT(client_entry, entries);
-			dprintf("Found entry fd: %d\n", tmp_entry->fd);
-			if ((void *)tmp_entry != NULL && client->fd == tmp_entry->fd) {
-				TAILQ_REMOVE(&clients, client_entry, entries);
-				free(client_entry);
-			}
-
-		}
-		*/
 	} else {
 		dprintf ("Already disconnected (%s)\n", inet_ntoa(client->client_addr.sin_addr));
+		if (client)
+			free(client);
 	}
 }
 
@@ -89,6 +79,8 @@ void client_connect(struct client *client) {
 int cwrite(struct client *client, const char *s) {
 	struct evbuffer *evbuffer;
 	int l;
+
+	dprintf("DEBUG: %s\n", s);
 
 	evbuffer = evbuffer_new();
 	evbuffer_add_printf(evbuffer, s);
@@ -144,11 +136,22 @@ void bufev_on_read(struct bufferevent *bev, void *arg) {
 		}
 	}
 	else if (strncasecmp(cmd, "MSG", 3) == 0) {
+		char msg[1024];
+		snprintf(msg, 1024, "MSG %s %s\n", client->username, &cmd[4]);
+
 		TAILQ_FOREACH(cli, &clients, entries) {
-			char msg[1024];
-			snprintf(msg, 1024, "MSG %s %s\n", client->username, &cmd[4]);
+			if(cli->fd == client->fd)
+				break;
 			cwrite(cli, msg);
 		}
+
+		/**
+		 * Send to the sender last 
+		 * Avoid disconnecting and thus freeing "client" if the sender
+		 * disconnects
+		 */
+		cwrite(client, msg);
+
 	}
 	else if (strncasecmp(cmd, "EXIT", 4) == 0) {
 		cwrite(client, "BYE\n");
@@ -171,7 +174,7 @@ void bufev_on_write(struct bufferevent *bev, void *arg) {
 }
 
 void bufev_on_error(struct bufferevent *bev, short what, void *arg) {
-	if (what & EVBUFFER_EOF) {
+	if (what & (EVBUFFER_EOF | EVBUFFER_ERROR)) {
 		struct client *client = (struct client*)arg;
 		client_disconnect(client);
 	} else {

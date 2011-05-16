@@ -13,15 +13,15 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-//#include <errrno.h>
 #include <err.h>
 
 #include <event.h>
 
-#include "client.h"
+#include "server.h"
 
 #define SERVER_PORT 9119
-int debug = 0;
+
+int debug = 1;
 
 int dprintf(const char *format, ...) {
 	va_list args;
@@ -53,28 +53,24 @@ void signal_handler(int sig) {
 	}
 }
 
-int main(int argc, char **argv) {
-	int listen_fd, ch;
-	int daemon = 0;
-	int port = SERVER_PORT;
-	int reuseaddr_on;
-
-	struct sockaddr_in listen_addr;
-	struct event ev_accept;
-
-	pid_t pid, sid;
-
-	/* Signal handling */
+void register_signals() {
 	signal(SIGHUP, signal_handler);
 	signal(SIGTERM, signal_handler);
 	signal(SIGINT, signal_handler);
 	signal(SIGQUIT, signal_handler);
 	signal(SIGPIPE, signal_handler);
+}
 
+int main(int argc, char **argv) {
+	int opt;
+	int daemon = 0;
+	int port = SERVER_PORT;
+	int server_fd;
+	pid_t pid, sid;
 
 	/* Launch options */
-	while ((ch = getopt(argc, argv, "dvp:")) != -1) {
-		switch (ch) {
+	while ((opt = getopt(argc, argv, "dvp:")) != -1) {
+		switch (opt) {
 		case 'd':
 			daemon = 1;
 			break;
@@ -88,10 +84,11 @@ int main(int argc, char **argv) {
 			printf("Usage: %s [-d] [-v] [-p port]\n", argv[0]);
 			exit(EXIT_FAILURE);
 			break;
-
 		}
-	
 	}
+
+	/* Signal handling */
+	register_signals();
 
 	dprintf ("Starting at port %d\n", port);
 
@@ -111,42 +108,14 @@ int main(int argc, char **argv) {
 			exit(EXIT_FAILURE);
 		}
 	}
-	
-	TAILQ_INIT(&clients);
 
-	/* Init libevent */
-	event_init();
+	/* INIT client nodes */
+	TAILQ_INIT(&client_nodes);
 
-	listen_fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (listen_fd < 0)
-		err(1, "listen failed");
+	server_fd = server_init(port);
+	server_shutdown(server_fd);
 
-	memset(&listen_addr, 0, sizeof(listen_addr));
-	listen_addr.sin_family = AF_INET;
-	listen_addr.sin_addr.s_addr = INADDR_ANY;
-	listen_addr.sin_port = htons(port);
-
-	if (bind(listen_fd, (struct sockaddr *)&listen_addr,
-		sizeof(listen_addr)) < 0)
-		err(1, "bind failed");
-
-	if (listen(listen_fd, 5) < 0)
-		err(1, "listen failed");
-
-	reuseaddr_on = 1;
-	setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr_on,
-		sizeof(reuseaddr_on));
-
-	if (setnonblock(listen_fd) < 0)
-		err(1, "setnonblock failed");
-
-	event_set(&ev_accept, listen_fd, EV_READ|EV_PERSIST, bufev_on_accept, NULL);
-	event_add(&ev_accept, NULL);
-
-	event_dispatch();
-
-	shutdown(listen_fd, SHUT_RDWR);
-	close(listen_fd);
 	printf("Quiting.\n");
+
 	return 0;
 }
