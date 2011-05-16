@@ -66,6 +66,7 @@ int pdstr_parse_cmd(struct client_node *client_node, const char *cmd) {
 	else if (strncasecmp(cmd, "MSG", 3) == 0)
 		pdstr_msg(client_node, cmd);
 	else if (strncasecmp(cmd, "EXIT", 4) == 0) {
+		pdstr_exit(client_node, cmd);
 	}
 
 	return -1;
@@ -74,6 +75,7 @@ int pdstr_parse_cmd(struct client_node *client_node, const char *cmd) {
 
 int pdstr_init(struct client_node *client_node, const char *cmd) {
 	if (sscanf(&cmd[5], "%s %d", client_node->username, &client_node->port) == 2) {
+		/* Verify if username is unique */
 		return _write_node(client_node, "+OK\n");
 	} else {
 		return _write_node(client_node, "-ERR Init failed\n");
