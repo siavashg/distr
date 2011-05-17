@@ -92,9 +92,6 @@ int server_shutdown(int server_fd) {
 
 void client_connect(struct client_node *client_node) {
 	TAILQ_INSERT_TAIL(&client_nodes, client_node, entries);
-
-	//pdstr_greet(client_node);
-
 	dprintf ("Connected (%s) (fd: %d)\n", inet_ntoa(client_node->addr.sin_addr), client_node->fd);
 }
 
