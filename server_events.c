@@ -55,7 +55,7 @@ void server_ev_accept(int server_fd, short ev, void *arg) {
 	client_node->fd = client_fd;
 
 	/* Setup buffer events for client events */
-	client_node->bufev = bufferevent_new(client_fd, 
+	client_node->bufev = bufferevent_new(client_node->fd, 
 				server_ev_read,
 				server_ev_write, 
 				server_ev_error, 
