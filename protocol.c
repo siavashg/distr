@@ -24,6 +24,23 @@
 #include "server.h"
 #include "protocol.h"
 
+int _write_node_end(struct client_node *client_node, const char *s) {
+	bufferevent_free(client_node->bufev);
+	/* Disconnect user after write */
+	client_node->bufev = bufferevent_new(client_node->fd, 
+				server_ev_read,
+				_write_node_end_cb, 
+				server_ev_error, 
+				client_node);
+	bufferevent_enable(client_node->bufev, EV_READ);
+	return _write_node(client_node, s);
+}
+
+void _write_node_end_cb(struct bufferevent *bev, void *arg) {
+	struct client_node *client_node = (struct client_node*)arg;
+	client_disconnect(client_node);
+}
+
 int _write_node(struct client_node *client_node, const char *s) {
 	struct evbuffer *write_buffer;
 	int l;
@@ -57,6 +74,8 @@ int pdstr_parse_cmd(struct client_node *client_node, const char *cmd) {
 
 	if (strncasecmp(cmd, "INIT", 4) == 0)
 		pdstr_init(client_node, cmd);
+	else if (strncasecmp(cmd, "EXIT", 4) == 0)
+		pdstr_exit(client_node, cmd);
 	else if (strncasecmp(cmd, "HELLO", 5) == 0)
 		pdstr_hello(client_node, cmd);
 	else if (strncasecmp(cmd, "PING", 4) == 0)
@@ -65,9 +84,8 @@ int pdstr_parse_cmd(struct client_node *client_node, const char *cmd) {
 		pdstr_who(client_node, cmd);
 	else if (strncasecmp(cmd, "MSG", 3) == 0)
 		pdstr_msg(client_node, cmd);
-	else if (strncasecmp(cmd, "EXIT", 4) == 0) {
-		pdstr_exit(client_node, cmd);
-	}
+	else if (strncasecmp(cmd, "GET", 3) == 0)
+		pdstr_http(client_node, cmd);
 
 	return -1;
 }
@@ -88,8 +106,7 @@ int pdstr_greet(struct client_node *client_node) {
 }
 
 int pdstr_exit(struct client_node *client_node, const char *cmd) {
-	int r =_write_node(client_node, "BYE\n");
-	shutdown(client_node->fd, SHUT_RD);
+	int r =_write_node_end(client_node, "BYE\n");
 	return r;
 }
 
@@ -104,6 +121,14 @@ int pdstr_hello(struct client_node *client_node, const char *cmd) {
 
 int pdstr_ping(struct client_node *client_node, const char *cmd) {
 	return _write_node(client_node, "PONG\n");
+}
+
+int pdstr_http(struct client_node *client_node, const char *cmd) {
+	char html[] = "<html><body>Hej!</body></html>\n";
+	_write_node(client_node, "HTTP/1.1 200\n");
+	_write_node(client_node, "Content-Length: 112\n");
+	_write_node_end(client_node, html);
+	return 1;
 }
 
 int pdstr_who(struct client_node *client_node, const char *cmd) {
