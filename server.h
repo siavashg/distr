@@ -28,7 +28,4 @@ int server_shutdown(int server_fd);
 void client_connect(struct client_node *client_node);
 void client_disconnect(struct client_node *client_node);
 
-void log_send(struct client_node *client_node, const char *s);
-void log_recv(struct client_node *client_node, const char *s);
-
 #endif

@@ -88,6 +88,7 @@ void server_ev_read(struct bufferevent *bev, void *arg) {
  * When write buffer reaches 0
  */
 void server_ev_write(struct bufferevent *bev, void *arg) {
+	//struct client_node *client_node = (struct client_node*)arg;
 }
 
 void server_ev_error(struct bufferevent *bev, short what, void *arg) {

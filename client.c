@@ -90,7 +90,7 @@ int cwrite(struct client *client, const char *s) {
 	return l;
 }
 
-/**
+/*
  * libevent read callback
  */
 void bufev_on_read(struct bufferevent *bev, void *arg) {
