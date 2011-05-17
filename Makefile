@@ -29,4 +29,4 @@ distr: distr.c client.c
 	$(CC) $(CFLAGS) -o $@ $(SOURCES) $(LDFLAGS) $(LDLIBS)
 
 clean:
-	rm -rf distr *~
+	rm -rf distr *~ distr.dSYM
