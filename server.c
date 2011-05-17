@@ -116,9 +116,3 @@ void client_disconnect(struct client_node *client_node) {
 			free(client_node);
 	}
 }
-
-
-
-
-
-
