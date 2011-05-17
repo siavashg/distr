@@ -3,7 +3,8 @@ all: distr
 
 UNAME := $(shell uname)
 
-CFLAGS	+= -I./include -Wall -g
+OPTIMIZATION?=-O2
+CFLAGS	+= -I./include -Wall -g $(OPTIMIZATION)
 LDLIBS	+= -levent
 
 #
