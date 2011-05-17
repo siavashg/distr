@@ -24,6 +24,8 @@
 #include "protocol.h"
 #include "server.h"
 
+#define LISTEN_BACKLOG 5000
+
 int setnonblock(int fd) {
 	int flags;
 
@@ -41,7 +43,7 @@ int setnonblock(int fd) {
 }
 
 int server_init(int port) {
-	int server_fd;
+	unsigned int server_fd;
 	struct sockaddr_in server_addr;
 	struct event ev_server_accept;
 	int reuseaddr_on = 1;
@@ -63,7 +65,7 @@ int server_init(int port) {
 		sizeof(server_addr)) < 0)
 		err(1, "bind failed");
 
-	if (listen(server_fd, 5) < 0)
+	if (listen(server_fd, LISTEN_BACKLOG) < 0)
 		err(1, "listen failed");
 	
 	/* Set SO_REUSEADDR */
@@ -91,7 +93,7 @@ int server_shutdown(int server_fd) {
 void client_connect(struct client_node *client_node) {
 	TAILQ_INSERT_TAIL(&client_nodes, client_node, entries);
 
-	pdstr_greet(client_node);
+	//pdstr_greet(client_node);
 
 	dprintf ("Connected (%s) (fd: %d)\n", inet_ntoa(client_node->addr.sin_addr), client_node->fd);
 }
