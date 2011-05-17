@@ -10,9 +10,9 @@ struct client_node {
 
 	struct bufferevent *bufev;
 	struct sockaddr_in addr;
+	int port;
 
 	char username[USERNAME_MAX_LENGTH];
-	int port;
 
 	TAILQ_ENTRY(client_node) entries;
 };

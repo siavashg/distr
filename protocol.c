@@ -40,6 +40,8 @@ int pdstr_parse_cmd(struct client_node *client_node, const char *cmd) {
 		pdstr_msg(client_node, cmd);
 	else if (strncasecmp(cmd, "GET", 3) == 0)
 		pdstr_http(client_node, cmd);
+	else if (strncasecmp(cmd, "CONNECT", 7) == 0)
+		pdstr_connect(client_node, cmd);
 	else
 		pdstr_unknown(client_node, cmd);
 
@@ -177,6 +179,16 @@ int pdstr_msg(struct client_node *client_node, const char *cmd) {
 		 */
 		write_node(client_node, msg);
 		return 1;
+	}
+	return 0;
+}
+
+/*
+ * CONNECT
+ */
+int pdstr_connect(struct client_node *client_node, const char *cmd) {
+	if(check_auth(client_node)) {
+		return write_node(client_node, "Ye ye, will connect. I promise.\n");
 	}
 	return 0;
 }
