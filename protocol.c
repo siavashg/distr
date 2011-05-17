@@ -24,28 +24,28 @@
 #include "server.h"
 #include "protocol.h"
 
-int _write_node_end(struct client_node *client_node, const char *s) {
+int write_node_end(struct client_node *client_node, const char *s) {
 	bufferevent_free(client_node->bufev);
 	/* Disconnect user after write */
 	client_node->bufev = bufferevent_new(client_node->fd, 
 				server_ev_read,
-				_write_node_end_cb, 
+				write_node_end_cb, 
 				server_ev_error, 
 				client_node);
 	bufferevent_enable(client_node->bufev, EV_READ);
-	return _write_node(client_node, s);
+	return write_node(client_node, s);
 }
 
-void _write_node_end_cb(struct bufferevent *bev, void *arg) {
+void write_node_end_cb(struct bufferevent *bev, void *arg) {
 	struct client_node *client_node = (struct client_node*)arg;
 	client_disconnect(client_node);
 }
 
-int _write_node(struct client_node *client_node, const char *s) {
+int write_node(struct client_node *client_node, const char *s) {
 	struct evbuffer *write_buffer;
 	int l;
 
-	dprintf("_write_node(%s, %s)\n", client_node->username, s);
+	dprintf("write_node(%s, %s)\n", client_node->username, s);
 
 	write_buffer = evbuffer_new();
 
@@ -64,7 +64,7 @@ int _write_node(struct client_node *client_node, const char *s) {
 
 int _check_auth(struct client_node *client_node) {
 	if (strlen(client_node->username) <= 0) {
-		_write_node(client_node, "-ERR User not authenticated\n");
+		write_node(client_node, "-ERR User not authenticated\n");
 		return 0;
 	}
 	return 1;
@@ -84,29 +84,38 @@ int pdstr_parse_cmd(struct client_node *client_node, const char *cmd) {
 		pdstr_who(client_node, cmd);
 	else if (strncasecmp(cmd, "MSG", 3) == 0)
 		pdstr_msg(client_node, cmd);
+	else if (strncasecmp(cmd, "PRIVMSG", 3) == 0)
+		pdstr_privmsg(client_node, cmd);
 	else if (strncasecmp(cmd, "GET", 3) == 0)
 		pdstr_http(client_node, cmd);
 
-	return -1;
+	return 0;
 }
 
 
 int pdstr_init(struct client_node *client_node, const char *cmd) {
 	if (sscanf(&cmd[5], "%s %d", client_node->username, &client_node->port) == 2) {
-		/* Verify if username is unique */
-		return _write_node(client_node, "+OK\n");
+		write_node(client_node, "+OK\n");
+		return pdstr_greet(client_node);
 	} else {
-		return _write_node(client_node, "-ERR Init failed\n");
+		write_node(client_node, "-ERR Init failed\n");
+		return 0;
 	}
-	return -1;
 }
 
 int pdstr_greet(struct client_node *client_node) {
-	return _write_node(client_node, "WELCOME\n");
+	if (_check_auth(client_node)) {
+		char *msg;
+		asprintf(&msg, "WELCOME %s\n", client_node->username);
+		write_node(client_node, msg);
+		free(msg);
+		return 1;
+	}
+	return 0;
 }
 
 int pdstr_exit(struct client_node *client_node, const char *cmd) {
-	int r =_write_node_end(client_node, "BYE\n");
+	int r = write_node_end(client_node, "BYE\n");
 	return r;
 }
 
@@ -114,20 +123,20 @@ int pdstr_hello(struct client_node *client_node, const char *cmd) {
 	if (_check_auth(client_node)) {
 		char msg[128];
 		snprintf(msg, 128, "HELLO %s\n", client_node->username);
-		return _write_node(client_node, msg);
+		return write_node(client_node, msg);
 	} 
-	return -1;
+	return 0;
 }
 
 int pdstr_ping(struct client_node *client_node, const char *cmd) {
-	return _write_node(client_node, "PONG\n");
+	return write_node(client_node, "PONG\n");
 }
 
 int pdstr_http(struct client_node *client_node, const char *cmd) {
 	char html[] = "<html><body>Hej!</body></html>\n";
-	_write_node(client_node, "HTTP/1.1 200\n");
-	_write_node(client_node, "Content-Length: 112\n");
-	_write_node_end(client_node, html);
+	write_node(client_node, "HTTP/1.1 200\n");
+	write_node(client_node, "Content-Length: 112\n");
+	write_node_end(client_node, html);
 	return 1;
 }
 
@@ -140,11 +149,11 @@ int pdstr_who(struct client_node *client_node, const char *cmd) {
 				cli->username,
 				inet_ntoa(cli->addr.sin_addr),
 				cli->port);
-			_write_node(client_node, msg);
+			write_node(client_node, msg);
 		}
-		return 0;
+		return 1;
 	}
-	return -1;
+	return 0;
 }
 
 
@@ -158,17 +167,41 @@ int pdstr_msg(struct client_node *client_node, const char *cmd) {
 		TAILQ_FOREACH(cli, &client_nodes, entries) {
 			if(cli->fd == client_node->fd)
 				continue;
-			_write_node(cli, msg);
+			write_node(cli, msg);
 		}
 		/**
 		 * Send to the sender last 
 		 * Avoid disconnecting and thus freeing "client_node" if the sender
 		 * disconnects
 		 */
-		_write_node(client_node, msg);
-		return 0;
+		write_node(client_node, msg);
+		return 1;
 	}
-	return -1;
+	return 0;
+}
+
+
+int pdstr_privmsg(struct client_node *client_node, const char *cmd) {
+	if(_check_auth(client_node)) {
+		struct client_node *cli;
+		char msg[1024];
+
+		snprintf(msg, 1024, "PRIVMSG %s %s\n", client_node->username, &cmd[8]);
+
+		TAILQ_FOREACH(cli, &client_nodes, entries) {
+			if(cli->fd == client_node->fd)
+				continue;
+			write_node(cli, msg);
+		}
+		/**
+		 * Send to the sender last 
+		 * Avoid disconnecting and thus freeing "client_node" if the sender
+		 * disconnects
+		 */
+		write_node(client_node, msg);
+		return 1;
+	}
+	return 0;
 }
 
 
