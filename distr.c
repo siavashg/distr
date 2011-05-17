@@ -26,12 +26,9 @@ int debug = 1;
 int dprintf(const char *format, ...) {
 	va_list args;
 	int l = 0;
-
 	va_start(args, format);
-
 	if(debug)
 		l = vprintf(format, args);
-
 	va_end(args);
 	return l;
 }
@@ -115,7 +112,7 @@ int main(int argc, char **argv) {
 	server_fd = server_init(port);
 	server_shutdown(server_fd);
 
-	printf("Quiting.\n");
+	printf("Shutting down server.\n");
 
 	return 0;
 }
