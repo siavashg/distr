@@ -20,13 +20,16 @@ CFLAGS	+= $(shell pkg-config --cflags libevent)
 LDFLAGS	+= $(shell pkg-config --libs-only-L libevent)
 endif
 
-SOURCES = distr.c \
-		server.c \
-		server_events.c \
-		protocol.c
+OBJ = distr.o \
+server.o \
+server_events.o \
+protocol.o
 
-distr: distr.c client.c
-	$(CC) $(CFLAGS) -o $@ $(SOURCES) $(LDFLAGS) $(LDLIBS)
+distr: $(OBJ)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LDLIBS)
+
+test: test/test.c
+	$(CC) $(CFLAGS) -o $@ $(LDFLAGS) $(LDLIBS)
 
 clean:
-	rm -rf distr *~ distr.dSYM
+	rm -rf distr *.o *~ distr.dSYM
