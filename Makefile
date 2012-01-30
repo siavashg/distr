@@ -24,13 +24,11 @@ endif
 OBJ = distr.o \
 server.o \
 server_events.o \
+client.o \
 protocol.o
 
 distr: $(OBJ)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LDLIBS)
-
-test: test/test.c
-	$(CC) $(CFLAGS) -o $@ $(LDFLAGS) $(LDLIBS)
 
 clean:
 	rm -rf distr *.o *~ distr.dSYM

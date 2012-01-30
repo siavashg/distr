@@ -22,18 +22,30 @@
 #include "distr.h"
 #include "client.h"
 
+struct distr_node *server_connect(char *hostname, unsigned int port) {
+	struct distr_node *server_node;
+	struct sockaddr_in server_addr;
+	int socket_fd;
 
-struct client *new_client(struct client *client) {
-	struct evbuffer *evbuffer;
+	server_node = calloc(1, sizeof(*server_node));
 
-	evbuffer = evbuffer_new();
-	TAILQ_INSERT_TAIL(&clients, client, entries);
+	if (server_node == NULL)
+		err(1, "alloc failed");
 
-	evbuffer_add_printf(evbuffer, "WELCOME\n");
-	evbuffer_write(evbuffer, client->fd);
+  memset(&server_addr, 0, sizeof(struct sockaddr_in));
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_port = htons(port);
 
-	evbuffer_free(evbuffer);
+	if (inet_pton(AF_INET, hostname, &server_addr.sin_addr) <= 0) {
+		deprintf("Invalid address-family or IP-adress for connect\n");
+		err(1, "inet_pton failed");
+		return server_node;
+	}
 
-	dprintf ("Connected (%s) (fd: %d)\n", inet_ntoa(client->client_addr.sin_addr), client->fd);
+	socket_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+	if (socket_fd < 0) {
+		err(1, "socket failed");
+		return server_node;
+	}
 }
-

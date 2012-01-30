@@ -24,7 +24,7 @@
 #include "server.h"
 #include "protocol.h"
 
-int pdstr_parse_cmd(struct client_node *client_node, const char *cmd) {
+int pdstr_parse_cmd(struct distr_node *client_node, const char *cmd) {
 
 	if (strncasecmp(cmd, "AUTH", 4) == 0)
 		pdstr_auth(client_node, cmd);
@@ -51,7 +51,7 @@ int pdstr_parse_cmd(struct client_node *client_node, const char *cmd) {
 /*
  * greet
  */
-int pdstr_greet(struct client_node *client_node) {
+int pdstr_greet(struct distr_node *client_node) {
 	if (check_auth(client_node)) {
 		char *msg;
 		asprintf(&msg, "WELCOME %s\n", client_node->username);
@@ -66,13 +66,13 @@ int pdstr_greet(struct client_node *client_node) {
 /*
  * AUTH
  */
-int pdstr_auth(struct client_node *client_node, const char *cmd) {
+int pdstr_auth(struct distr_node *client_node, const char *cmd) {
 	char username[USERNAME_MAX_LENGTH];
 	unsigned int port;
 
 	/* TODO: 128 should be USERNAME_MAX_LENGTH */
 	if (sscanf(&cmd[5], "%128s %d", username, &port) == 2) {
-		struct client_node *cli;
+		struct distr_node *cli;
 		
 		/* Check if username is already taken */
 		TAILQ_FOREACH(cli, &client_nodes, entries) {
@@ -101,7 +101,7 @@ int pdstr_auth(struct client_node *client_node, const char *cmd) {
 /*
  * EXIT
  */
-int pdstr_exit(struct client_node *client_node, const char *cmd) {
+int pdstr_exit(struct distr_node *client_node, const char *cmd) {
 	int r = write_node_end(client_node, "BYE\n");
 	return r;
 }
@@ -109,7 +109,7 @@ int pdstr_exit(struct client_node *client_node, const char *cmd) {
 /*
  * HELLO
  */
-int pdstr_hello(struct client_node *client_node, const char *cmd) {
+int pdstr_hello(struct distr_node *client_node, const char *cmd) {
 	if (check_auth(client_node)) {
 		char msg[128];
 		snprintf(msg, 128, "HELLO %s\n", client_node->username);
@@ -121,14 +121,14 @@ int pdstr_hello(struct client_node *client_node, const char *cmd) {
 /*
  * PING
  */
-int pdstr_ping(struct client_node *client_node, const char *cmd) {
+int pdstr_ping(struct distr_node *client_node, const char *cmd) {
 	return write_node(client_node, "PONG\n");
 }
 
 /*
  * GET
  */
-int pdstr_http(struct client_node *client_node, const char *cmd) {
+int pdstr_http(struct distr_node *client_node, const char *cmd) {
 	char html[] = "<html><body>Hej!</body></html>\n";
 	write_node(client_node, "HTTP/1.1 200\n");
 	write_node(client_node, "Content-Length: 112\n");
@@ -139,9 +139,9 @@ int pdstr_http(struct client_node *client_node, const char *cmd) {
 /*
  * WHO
  */
-int pdstr_who(struct client_node *client_node, const char *cmd) {
+int pdstr_who(struct distr_node *client_node, const char *cmd) {
 	if(check_auth(client_node)) {
-		struct client_node *cli;
+		struct distr_node *cli;
 		TAILQ_FOREACH(cli, &client_nodes, entries) {
 			char msg[1024];
 			snprintf(msg, 1024, "USER %s %s %d\n", 
@@ -158,9 +158,9 @@ int pdstr_who(struct client_node *client_node, const char *cmd) {
 /*
  * MSG
  */
-int pdstr_msg(struct client_node *client_node, const char *cmd) {
+int pdstr_msg(struct distr_node *client_node, const char *cmd) {
 	if(check_auth(client_node)) {
-		struct client_node *cli;
+		struct distr_node *cli;
 		char msg[1024];
 
 		snprintf(msg, 1024, "MSG %s %s\n", client_node->username, &cmd[4]);
@@ -186,7 +186,7 @@ int pdstr_msg(struct client_node *client_node, const char *cmd) {
 /*
  * CONNECT
  */
-int pdstr_connect(struct client_node *client_node, const char *cmd) {
+int pdstr_connect(struct distr_node *client_node, const char *cmd) {
 	if(check_auth(client_node)) {
 		return write_node(client_node, "Ye ye, will connect. I promise.\n");
 	}
@@ -196,7 +196,7 @@ int pdstr_connect(struct client_node *client_node, const char *cmd) {
 /*
  * UNKNOWN
  */
-int pdstr_unknown(struct client_node *client_node, const char *cmd) {
+int pdstr_unknown(struct distr_node *client_node, const char *cmd) {
 	return write_node(client_node, "-ERR Unknown command\n");
 }
 

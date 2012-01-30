@@ -23,7 +23,7 @@
 
 int debug = 1;
 
-int dprintf(const char *format, ...) {
+int deprintf(const char *format, ...) {
 	va_list args;
 	int l = 0;
 	va_start(args, format);
@@ -34,7 +34,7 @@ int dprintf(const char *format, ...) {
 }
 
 void signal_handler(int sig) {
-	dprintf("Received signal: %d\n", sig);
+	deprintf("Received signal: %d\n", sig);
 	switch (sig) {
 		case SIGTERM:
 		case SIGHUP:
@@ -42,7 +42,7 @@ void signal_handler(int sig) {
 			event_loopexit(NULL);
 			break;
 		case SIGPIPE:
-			dprintf("Received SIGPIPE\n");
+			deprintf("Received SIGPIPE\n");
 			break;
 		default:
 			syslog(LOG_WARNING, "Uhandled signal %d", sig);
@@ -87,11 +87,11 @@ int main(int argc, char **argv) {
 	/* Signal handling */
 	register_signals();
 
-	dprintf ("Starting at port %d\n", port);
+	deprintf ("Starting at port %d\n", port);
 
 	/* Daemonify */
 	if (daemon) {
-		dprintf ("Starting as daemon\n");
+		deprintf ("Starting as daemon\n");
 		pid = fork();
 		if (pid < 0) {
 			exit(EXIT_FAILURE);

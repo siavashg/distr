@@ -24,7 +24,8 @@
 #include "protocol.h"
 #include "server.h"
 
-#define LISTEN_BACKLOG 5000
+/* Silently capped at 128, see man listen */
+#define LISTEN_BACKLOG 120
 
 int setnonblock(int fd) {
 	int flags;
@@ -90,14 +91,14 @@ int server_shutdown(int server_fd) {
 	return close(server_fd);
 }
 
-void client_connect(struct client_node *client_node) {
+void client_connect(struct distr_node *client_node) {
 	TAILQ_INSERT_TAIL(&client_nodes, client_node, entries);
-	dprintf ("Connected (%s) (fd: %d)\n", inet_ntoa(client_node->addr.sin_addr), client_node->fd);
+	deprintf ("Connected (%s) (fd: %d)\n", inet_ntoa(client_node->addr.sin_addr), client_node->fd);
 }
 
-void client_disconnect(struct client_node *client_node) {
+void client_disconnect(struct distr_node *client_node) {
 	if (client_node->fd > 0) {
-		dprintf ("Disconnected (%s) (fd: %d)\n", inet_ntoa(client_node->addr.sin_addr), client_node->fd);
+		deprintf ("Disconnected (%s) (fd: %d)\n", inet_ntoa(client_node->addr.sin_addr), client_node->fd);
 		shutdown(client_node->fd, SHUT_RDWR);
 		bufferevent_free(client_node->bufev);
 		close(client_node->fd);
@@ -108,13 +109,13 @@ void client_disconnect(struct client_node *client_node) {
 			free(client_node);
 		
 	} else {
-		dprintf ("Already disconnected (%s)\n", inet_ntoa(client_node->addr.sin_addr));
+		deprintf ("Already disconnected (%s)\n", inet_ntoa(client_node->addr.sin_addr));
 		if (client_node)
 			free(client_node);
 	}
 }
 
-int write_node(struct client_node *client_node, const char *s) {
+int write_node(struct distr_node *client_node, const char *s) {
 	struct evbuffer *write_buffer;
 	int l;
 
@@ -126,13 +127,13 @@ int write_node(struct client_node *client_node, const char *s) {
 	if (l == 0)
 		log_send(client_node, s);
 	else
-		dprintf("Error writing to buffer\n");
+		deprintf("Error writing to buffer\n");
 
 	return l;
 }
 
 /* Disconnect user after write */
-int write_node_end(struct client_node *client_node, const char *s) {
+int write_node_end(struct distr_node *client_node, const char *s) {
 	bufferevent_free(client_node->bufev);
 	client_node->bufev = bufferevent_new(client_node->fd, 
 				server_ev_read,
@@ -144,11 +145,11 @@ int write_node_end(struct client_node *client_node, const char *s) {
 }
 
 void write_node_end_cb(struct bufferevent *bev, void *arg) {
-	struct client_node *client_node = (struct client_node*)arg;
+	struct distr_node *client_node = (struct distr_node*)arg;
 	client_disconnect(client_node);
 }
 
-int check_auth(struct client_node *client_node) {
+int check_auth(struct distr_node *client_node) {
 	if (strlen(client_node->username) <= 0) {
 		write_node(client_node, "-ERR User not authenticated\n");
 		return 0;
@@ -156,20 +157,20 @@ int check_auth(struct client_node *client_node) {
 	return 1;
 }
 
-void log_recv(struct client_node *client_node, const char *s) {
-	dprintf (">> ");
+void log_recv(struct distr_node *client_node, const char *s) {
+	deprintf ("<< ");
 	if (strlen(client_node->username) > 0) 
-		dprintf("(%s) ", client_node->username);
+		deprintf("(%s) (%d) ", client_node->username, client_node->fd);
 	else 
-		dprintf("(%s) ", inet_ntoa(client_node->addr.sin_addr));
-	dprintf ("%s\n",s);
+		deprintf("(%s) (%d) ", inet_ntoa(client_node->addr.sin_addr), client_node->fd);
+	deprintf ("%s\n",s);
 }
 
-void log_send(struct client_node *client_node, const char *s) {
-	dprintf ("<< ");
+void log_send(struct distr_node *client_node, const char *s) {
+	deprintf (">> ");
 	if (strlen(client_node->username) > 0) 
-		dprintf("(%s) ", client_node->username);
+		deprintf("(%s) (%d) ", client_node->username, client_node->fd);
 	else 
-		dprintf("(%s) ", inet_ntoa(client_node->addr.sin_addr));
-	dprintf ("%s",s);
+		deprintf("(%s) (%d) ", inet_ntoa(client_node->addr.sin_addr), client_node->fd);
+	deprintf ("%s",s);
 }

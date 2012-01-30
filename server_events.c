@@ -34,7 +34,7 @@
  */
 void server_ev_accept(int server_fd, short ev, void *arg) {
 	int client_fd;
-	struct client_node *client_node;
+	struct distr_node *client_node;
 	socklen_t client_len = sizeof(client_node->addr);
 
 	/* Setup client fd */
@@ -70,7 +70,7 @@ void server_ev_accept(int server_fd, short ev, void *arg) {
  * libevent read callback
  */
 void server_ev_read(struct bufferevent *bev, void *arg) {
-	struct client_node *client_node = (struct client_node*)arg;
+	struct distr_node *client_node = (struct distr_node*)arg;
 	const char *cmd;
 
 	cmd = evbuffer_readline(bev->input);
@@ -88,12 +88,12 @@ void server_ev_read(struct bufferevent *bev, void *arg) {
  * When write buffer reaches 0
  */
 void server_ev_write(struct bufferevent *bev, void *arg) {
-	//struct client_node *client_node = (struct client_node*)arg;
+	//struct distr_node *client_node = (struct distr_node*)arg;
 }
 
 void server_ev_error(struct bufferevent *bev, short what, void *arg) {
 	if (what & (EVBUFFER_EOF | EVBUFFER_ERROR)) {
-		struct client_node *client_node = (struct client_node*)arg;
+		struct distr_node *client_node = (struct distr_node*)arg;
 		client_disconnect(client_node);
 	} else {
 		printf("ERROR: %d\n", what);
