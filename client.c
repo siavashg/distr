@@ -28,24 +28,21 @@ struct distr_node *server_connect(char *hostname, unsigned int port) {
 	int socket_fd;
 
 	server_node = calloc(1, sizeof(*server_node));
-
 	if (server_node == NULL)
 		err(1, "alloc failed");
 
-  memset(&server_addr, 0, sizeof(struct sockaddr_in));
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port = htons(port);
-
+	memset(&server_addr, 0, sizeof(struct sockaddr_in));
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(port);
 	if (inet_pton(AF_INET, hostname, &server_addr.sin_addr) <= 0) {
 		deprintf("Invalid address-family or IP-adress for connect\n");
 		err(1, "inet_pton failed");
-		return server_node;
 	}
 
 	socket_fd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-
 	if (socket_fd < 0) {
 		err(1, "socket failed");
-		return server_node;
 	}
+
+	return server_node;
 }
