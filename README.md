@@ -1,8 +1,16 @@
+# Distr
+
+## Requirements
+
 Requirements:
-libevent-dev
+pkg-config, libevent
 
-Ubuntu, i.e: 
-	sudo apt-get install libevent-dev
+## Installing
 
-Compiling:
-	make
+### OS X (with MacPorts)
+    sudo port install pkg-config libevent
+    make
+
+### Debian
+    sudo apt-get install pkg-config libevent-dev
+    make
